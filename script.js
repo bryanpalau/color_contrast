@@ -1,52 +1,75 @@
-let score = 0;
-const colors = ['#FF0000', '#00FF00', '#0000FF', '#FFFF00', '#FF00FF', '#00FFFF', '#000000', '#FFFFFF'];
-const background = document.getElementById('background');
-const optionButtons = document.querySelectorAll('.color-option');
-const scoreDisplay = document.getElementById('score');
-const feedback = document.getElementById('feedback');
+const canvas = document.getElementById('gameCanvas');
+const ctx = canvas.getContext('2d');
 
-function generateRandomColor() {
-    return colors[Math.floor(Math.random() * colors.length)];
+canvas.width = window.innerWidth;
+canvas.height = window.innerHeight;
+
+let birdY = canvas.height / 2;
+let birdVelocity = 0;
+let gravity = 0.5;
+let isGameOver = false;
+
+const gateWidth = 100;
+const gateHeight = 200;
+const gateGap = 150;
+let gateX = canvas.width;
+let gateColor1 = '#000'; // Color of gate 1 (top)
+let gateColor2 = '#FFF'; // Color of gate 2 (bottom)
+let backgroundColor = '#888'; // Background color
+
+function drawBird() {
+    ctx.fillStyle = 'yellow';
+    ctx.beginPath();
+    ctx.arc(100, birdY, 20, 0, Math.PI * 2);
+    ctx.fill();
 }
 
-function setNewChallenge() {
-    const bgColor = generateRandomColor();
-    background.style.backgroundColor = bgColor;
-
-    // Get contrasting color (use a very simplified contrast check for fun purposes)
-    const correctColor = (bgColor === '#000000' || bgColor === '#FFFFFF') ? (bgColor === '#000000' ? '#FFFFFF' : '#000000') : '#000000';
-
-    const options = [...optionButtons];
-    const correctOption = Math.floor(Math.random() * options.length);
+function drawGates() {
+    // Draw top gate
+    ctx.fillStyle = gateColor1;
+    ctx.fillRect(gateX, 0, gateWidth, canvas.height / 2 - gateGap / 2);
     
-    // Assign correct option
-    options[correctOption].style.backgroundColor = correctColor;
-    options[correctOption].onclick = () => correctAnswer();
-
-    // Assign wrong options
-    options.forEach((button, index) => {
-        if (index !== correctOption) {
-            let wrongColor;
-            do {
-                wrongColor = generateRandomColor();
-            } while (wrongColor === correctColor || wrongColor === bgColor);
-            button.style.backgroundColor = wrongColor;
-            button.onclick = () => wrongAnswer(correctColor);
-        }
-    });
+    // Draw bottom gate
+    ctx.fillStyle = gateColor2;
+    ctx.fillRect(gateX, canvas.height / 2 + gateGap / 2, gateWidth, canvas.height);
 }
 
-function correctAnswer() {
-    score++;
-    scoreDisplay.textContent = `Score: ${score}`;
-    feedback.textContent = "Correct! Great job!";
-    setNewChallenge();
+function gameLoop() {
+    if (isGameOver) return;
+
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+    // Apply gravity to bird
+    birdVelocity += gravity;
+    birdY += birdVelocity;
+
+    // Move the gates
+    gateX -= 3;
+    if (gateX < -gateWidth) {
+        gateX = canvas.width;
+        // Randomize new gate colors
+        gateColor1 = Math.random() > 0.5 ? '#000' : '#FFF';
+        gateColor2 = Math.random() > 0.5 ? '#FFF' : '#000';
+        backgroundColor = '#'+Math.floor(Math.random()*16777215).toString(16); // Random background
+    }
+
+    // Check for collisions
+    if (birdY < 0 || birdY > canvas.height || (birdY < canvas.height / 2 - gateGap / 2 && gateX < 120 && gateX > 80)) {
+        isGameOver = true;
+        alert("Game Over!");
+    }
+
+    // Draw everything
+    drawBird();
+    drawGates();
+
+    requestAnimationFrame(gameLoop);
 }
 
-function wrongAnswer(correctColor) {
-    feedback.textContent = `Wrong! The correct answer was ${correctColor}.`;
-    setNewChallenge();
-}
+document.addEventListener('keydown', function() {
+    birdVelocity = -10; // Bird jumps up
+});
 
-// Initialize first challenge
-setNewChallenge();
+// Start the game
+gameLoop();
